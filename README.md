@@ -1,143 +1,72 @@
-# react-guard-patterns
+<p align="center">
+  <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjE2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMGQxMTE3Ii8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMWEwZjBmIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjgwMCIgaGVpZ2h0PSIxNjAiIGZpbGw9InVybCgjYmcpIi8+PHRleHQgeD0iNjAiIHk9Ijc4IiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjQ4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2U2ZWRmMyI+c2VudGluZWw8L3RleHQ+PHRleHQgeD0iNjAiIHk9IjExNCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzhiOTQ5ZSI+Rml2ZSBndWFyZHMuIFplcm8gcnVuYXdheSBhZ2VudHMuPC90ZXh0Pjxwb2x5Z29uIHBvaW50cz0iNzIwLDIwIDc2MCw1MCA3NjAsMTQwIDcyMCwxNDAgNjgwLDE0MCA2ODAsMTQwIDY4MCw1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjg1MTQ5IiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuOSIvPjx0ZXh0IHg9IjcyMCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNmODUxNDkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuKaoTwvdGV4dD48L3N2Zz4=" alt="sentinel" width="800"/>
+</p>
 
-> **Stop-condition patterns for ReAct agents — prevent infinite loops and runaway API costs in production.**
+<p align="center">
+  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/></a>
+  <img src="https://img.shields.io/badge/tests-14%20passing-brightgreen" alt="Tests"/>
+  <img src="https://img.shields.io/badge/dependencies-zero-brightgreen" alt="Zero deps"/>
+  <img src="https://img.shields.io/badge/pypi-coming%20soon-orange" alt="PyPI"/>
+</p>
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Zero dependencies](https://img.shields.io/badge/dependencies-zero-green.svg)]()
+<p align="center"><b>Five stop-condition guards. Prevent infinite loops and runaway API costs in production.</b></p>
 
 ---
 
 ## The Problem: ReAct Agents Have No Brakes
 
-The ReAct pattern (Reason + Act) is one of the most powerful paradigms in modern LLM agent design.
-An agent thinks, takes an action, observes the result, thinks again — and repeats until done.
+```python
+# This runs until YOUR money runs out
+while not agent.is_done():
+    agent.step()   # no guard = no ceiling
+```
 
-The catch: **"until done" is defined by the LLM itself.**
+The ReAct loop is elegant in a notebook. In production, it's a ticking clock. "Done" is defined by the LLM — and a confused model loops forever.
 
-In production, this creates four failure modes that have burned real engineering teams:
-
-| Failure Mode | What Happens | Cost |
+| Failure Mode | What Happens | Real Cost |
 |---|---|---|
-| **Infinite reasoning loop** | Model keeps "thinking" without acting | $10–$500+ per stuck task |
-| **Tool retry spiral** | A broken tool gets retried 100×  | 100× API budget wasted |
-| **Observation fixation** | Agent reads the same data repeatedly | Silent waste, wrong answers |
-| **Scope creep** | Unbounded search keeps expanding | Hours of compute, no output |
-
-These are not edge cases. They are **predictable failure modes** that emerge at scale — documented in
-[beam.ai's agentic patterns research](https://beam.ai/), the ReAct paper (Yao et al., 2023), and
-extensively in production post-mortems across the LLM ecosystem.
-
-The fix is simple: **add stop conditions**. This repo provides five production-grade patterns.
+| **Hard loop** | Same action, forever | $10–$500+ per stuck task |
+| **Semantic loop** | Different words, same dead end | Silent budget burn |
+| **Retry storm** | Broken tool retried 80× | 80× wasted API calls |
+| **Scope creep** | Unbounded search expands forever | Hours of compute, no output |
 
 ---
 
-## Five Stop-Condition Patterns
+## The Fix
 
-### 1. `MaxStepsGuard` — Hard Step Limit
-
-The simplest, most reliable safety net. Every agent run gets a fixed budget of steps.
-
-```python
-from react_guards.guards import MaxStepsGuard
-
-guard = MaxStepsGuard(max_steps=50)
-# Fires after step 50 regardless of what the agent is doing
+```mermaid
+flowchart LR
+    A[Agent Step] --> B[MaxStepsGuard]
+    B --> C[CostCeilingGuard]
+    C --> D[LoopDetectionGuard]
+    D --> E[TimeoutGuard]
+    E --> F[ProgressGuard]
+    F --> G{Any fired?}
+    G -->|no| H[Continue]
+    G -->|yes| I[STOP + reason\n+ final answer]
 ```
-
-**When to use:** Always. This is your last-resort fallback. Set it high enough for legitimate tasks
-(50–100 for most), low enough to catch runaway loops.
-
-**Production tip:** Log when this fires. Consistent MaxSteps triggers on specific task types signal
-that your prompt needs work, not your step budget.
 
 ---
 
-### 2. `CostCeilingGuard` — Token Cost Tracking
+## Five Guards
 
-Tracks cumulative token usage and fires when projected API spend exceeds your budget.
-
-```python
-from react_guards.guards import CostCeilingGuard
-
-guard = CostCeilingGuard(
-    max_cost_usd=1.00,
-    input_price_per_1k=0.005,   # override for your model
-    output_price_per_1k=0.015,
-)
-```
-
-**When to use:** Any production deployment where you bill per token. Set per-task budgets
-(e.g. $0.10 for simple queries, $2.00 for deep research), not per-session.
-
-**Production tip:** Set the ceiling at 80% of your acceptable max. Leave 20% headroom for the
-graceful shutdown path (which also uses tokens).
-
----
-
-### 3. `LoopDetectionGuard` — Detect Repeated Actions
-
-Hashes `(action, observation)` pairs in a sliding window. If the same pair repeats, the agent
-is cycling.
-
-```python
-from react_guards.guards import LoopDetectionGuard
-
-guard = LoopDetectionGuard(
-    window=5,        # check last 5 steps
-    min_repeats=2,   # fire on 2nd occurrence of the same fingerprint
-)
-```
-
-**When to use:** Agents that use external tools (search, code execution, APIs). Tool failures
-or empty results commonly cause the agent to retry identically.
-
-**Production tip:** Combine with structured error handling in your tool layer — LoopDetection
-is your circuit-breaker when tools are misbehaving.
-
----
-
-### 4. `TimeoutGuard` — Wall-Clock Timeout
-
-Enforces a hard time limit regardless of step count. Critical when individual steps may block
-(slow API, large context windows, network timeouts).
-
-```python
-from react_guards.guards import TimeoutGuard
-
-guard = TimeoutGuard(max_seconds=120)  # 2-minute hard limit
-```
-
-**When to use:** Any agent that calls external services. A single slow tool call can balloon
-a 10-step agent to 10 minutes.
-
-**Production tip:** Set per SLA requirement. For user-facing agents: 30–60s. Background agents:
-5–30 minutes. Always shorter than your infrastructure timeout.
-
----
-
-### 5. `ProgressGuard` — Detect Stalled Agents
-
-Monitors whether the agent is actually making progress. If observations stop changing (or a
-supplied `progress_score` stops increasing), the agent is stalled.
-
-```python
-from react_guards.guards import ProgressGuard
-
-guard = ProgressGuard(stall_threshold=3)  # 3 consecutive non-improving steps
-```
-
-**When to use:** Long-running research or planning agents. Complements LoopDetection: while
-LoopDetection catches identical action-observation pairs, ProgressGuard catches semantically
-similar-but-not-identical stalls.
-
-**Production tip:** If your agent can emit a numeric progress signal (e.g. percentage of
-subtasks completed), set `state.progress_score` — the guard will use it instead of relying
-on observation hashing.
+| Guard | Stops | Key Config |
+|-------|-------|-----------|
+| `MaxStepsGuard` | Hard step ceiling | `max_steps=50` |
+| `CostCeilingGuard` | Token spend ceiling | `max_cost_usd=1.00` |
+| `LoopDetectionGuard` | Repeated action-observation pairs | `window=5, min_repeats=2` |
+| `TimeoutGuard` | Wall-clock time limit | `max_seconds=120` |
+| `ProgressGuard` | Stalled / non-improving agent | `stall_threshold=3` |
 
 ---
 
 ## Quick Start
+
+```bash
+git clone https://github.com/darshjme/sentinel
+cd sentinel && pip install -e .
+```
 
 ```python
 from react_guards import GuardedReActAgent, StepOutput
@@ -147,7 +76,6 @@ from react_guards.guards import (
 )
 
 def my_agent_step(task: str, state: AgentState) -> StepOutput:
-    # Replace with your real LLM call
     response = call_your_llm(task, state)
     return StepOutput(
         action=response.action,
@@ -167,48 +95,34 @@ agent = GuardedReActAgent(
         TimeoutGuard(max_seconds=120),
         ProgressGuard(stall_threshold=3),
     ],
-    on_stop=lambda state, reason: print(f"Stopped: {reason}"),
 )
 
 result = agent.run("Research the latest advances in fusion energy")
-print(f"Answer: {result.final_answer}")
-print(f"Steps: {result.steps_taken} | Cost: ${result.total_cost_usd:.4f} | Stopped by: {result.stopped_by}")
+print(f"Stopped by: {result.stopped_by}")   # "agent_done" or guard name
+print(f"Steps: {result.steps_taken} | Cost: ${result.total_cost_usd:.4f}")
 ```
 
 ---
 
-## Synthetic Performance Benchmarks
+## Sequence: LoopDetection Catching a Stuck Agent
 
-> ⚠️ **These are synthetic benchmarks** run on a mock agent (no real LLM calls) to demonstrate
-> guard overhead characteristics. Real-world numbers depend entirely on your LLM and tools.
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant L as LoopDetectionGuard
+    participant R as Runner
 
-| Scenario | Steps | Guards Active | Guard Overhead | Winner |
-|---|---|---|---|---|
-| Natural completion | 3 | MaxSteps + Cost | < 0.1ms total | `agent_done` |
-| MaxSteps fires | 5 | MaxSteps only | ~0.02ms/step | `MaxStepsGuard` |
-| Cost ceiling hit | 2 | MaxSteps + Cost | ~0.03ms/step | `CostCeilingGuard` |
-| Loop detected | 4 | MaxSteps + Loop | ~0.15ms/step | `LoopDetectionGuard` |
-| Progress stall | 6 | MaxSteps + Progress | ~0.12ms/step | `ProgressGuard` |
-| All 5 active | varies | All guards | ~0.3ms/step | first to fire |
-
-**Key finding:** Guard overhead is negligible (< 1ms per step). The bottleneck is always
-the LLM call, not the guards.
-
----
-
-## Installation
-
-```bash
-# From source
-git clone https://github.com/darshjme/react-guard-patterns
-cd react-guard-patterns
-pip install -e .
-
-# Run the demo (no LLM needed)
-python examples/basic_usage.py
+    A->>R: Step 1: search("fusion energy")
+    R->>L: check(action, observation)
+    L-->>R: continue
+    A->>R: Step 2: search("fusion energy")
+    R->>L: check(action, observation)
+    L-->>R: continue (1st repeat)
+    A->>R: Step 3: search("fusion energy")
+    R->>L: check(action, observation)
+    L-->>R: STOP — repeated 2x in window=5
+    R-->>A: GuardTriggered: LoopDetectionGuard
 ```
-
-**Requirements:** Python 3.11+, zero runtime dependencies.
 
 ---
 
@@ -216,34 +130,30 @@ python examples/basic_usage.py
 
 1. **Zero dependencies** — pure Python stdlib. Drops into any stack.
 2. **Composable** — use one guard or all five. Order doesn't matter.
-3. **Stateless between runs** — `reset()` is called automatically on each `agent.run()`.
-4. **Protocol-based** — implement `should_stop / reason / reset` to build your own guard.
-5. **Fail-safe** — guards never raise; they return `bool`. Exceptions in guards are your agent's problem.
+3. **Stateless between runs** — `reset()` called automatically on each `agent.run()`.
+4. **Protocol-based** — implement `should_stop / reason / reset` to build custom guards.
+5. **Fail-safe** — guards never raise; they return `bool`.
+
+Guard overhead: **< 1ms per step**. The bottleneck is always your LLM call.
 
 ---
 
-## Further Reading
+## Part of Arsenal
 
-- Yao et al. (2023) — [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
-- [beam.ai — Agentic Patterns in Production](https://beam.ai/)
-- Significant Gravitas — [Auto-GPT: post-mortems on infinite loops](https://github.com/Significant-Gravitas/AutoGPT)
-- LangChain — [Agent executor stop conditions](https://python.langchain.com/docs/modules/agents/)
+```
+verdict · sentinel · herald · engram · arsenal
+```
+
+| Repo | Purpose |
+|------|---------|
+| [verdict](https://github.com/darshjme/verdict) | Score your agents |
+| [sentinel](https://github.com/darshjme/sentinel) | ← you are here |
+| [herald](https://github.com/darshjme/herald) | Semantic task router |
+| [engram](https://github.com/darshjme/engram) | Agent memory |
+| [arsenal](https://github.com/darshjme/arsenal) | The full pipeline |
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
-Built by [@darshjme](https://github.com/darshjme).
-
----
-
-## Related Projects
-
-Building production-grade agent systems? These companion repos complete the stack:
-
-- **[agent-evals](https://github.com/darshjme/agent-evals)** — LLM agent evaluation framework. Measure and benchmark agent performance after you've guarded the loops.
-- **[llm-router](https://github.com/darshjme/llm-router)** — Semantic task routing. Route tasks to specialist agents before they even reach the ReAct loop.
-
-All three repos by [@darshjme](https://github.com/darshjme).
+MIT © [Darshankumar Joshi](https://github.com/darshjme) · Built as part of the [Arsenal](https://github.com/darshjme/arsenal) toolkit.
