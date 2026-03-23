@@ -236,3 +236,14 @@ python examples/basic_usage.py
 MIT — see [LICENSE](LICENSE).
 
 Built by [@darshjme](https://github.com/darshjme).
+
+---
+
+## Related Projects
+
+Building production-grade agent systems? These companion repos complete the stack:
+
+- **[agent-evals](https://github.com/darshjme/agent-evals)** — LLM agent evaluation framework. Measure and benchmark agent performance after you've guarded the loops.
+- **[llm-router](https://github.com/darshjme/llm-router)** — Semantic task routing. Route tasks to specialist agents before they even reach the ReAct loop.
+
+All three repos by [@darshjme](https://github.com/darshjme).
