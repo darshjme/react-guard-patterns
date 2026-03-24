@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="800" height="300">
+  <defs>
+    <style>
+      .bg{fill:#0d1117}
+      .title{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;fill:#e6edf3}
+      .subtitle{font-family:'JetBrains Mono',monospace;font-size:13px;fill:#8b949e}
+      .tag{font-family:monospace;font-size:9px;fill:#cc9933}
+      .box{fill:#161b22;stroke:#30363d;stroke-width:1.5}
+      .danger{fill:#3d1a1a;stroke:#f85149;stroke-width:2}
+      .safe{fill:#1a3320;stroke:#238636;stroke-width:2}
+      .guard{fill:#1f2d3d;stroke:#1f6feb;stroke-width:1.5}
+      .lbl{font-family:monospace;font-size:10px;fill:#8b949e;text-anchor:middle}
+      @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+      @keyframes rotate{from{transform:rotate(0deg) translate(60px)}to{transform:rotate(360deg) translate(60px)}}
+      .spin{animation:rotate 3s linear infinite;transform-origin:320px 165px}
+      .blink{animation:blink 1s step-end infinite}
+    </style>
+  </defs>
+  <rect width="800" height="300" class="bg"/>
+
+  <text x="40" y="50" class="title">sentinel</text>
+  <text x="40" y="72" class="subtitle">Stop-condition guards for ReAct agents</text>
+  <text x="40" y="90" class="tag">Prevent infinite loops. Cap costs. Ship safely.</text>
+
+  <!-- Agent loop (left) — DANGER STATE -->
+  <rect x="40" y="115" width="130" height="130" rx="10" class="danger"/>
+  <text x="105" y="138" font-family="monospace" font-size="10" fill="#f85149" text-anchor="middle">⚠ Unguarded</text>
+  <text x="105" y="154" class="lbl">Step 1 → think</text>
+  <text x="105" y="170" class="lbl">Step 2 → tool call</text>
+  <text x="105" y="186" class="lbl">Step 3 → think</text>
+  <text x="105" y="202" class="lbl">Step 4 → tool call</text>
+  <text x="105" y="218" class="lbl blink" style="fill:#f85149">∞ loop...</text>
+  <text x="105" y="234" class="lbl blink" style="fill:#f85149">$$$...</text>
+
+  <!-- Arrow → sentinel -->
+  <line x1="172" y1="180" x2="230" y2="180" stroke="#1f6feb" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+  <defs><marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1f6feb"/></marker></defs>
+
+  <!-- Sentinel box (center) -->
+  <rect x="232" y="130" width="136" height="100" rx="10" fill="#161b22" stroke="#cc9933" stroke-width="2"/>
+  <text x="300" y="155" font-family="monospace" font-size="12" fill="#cc9933" text-anchor="middle">sentinel</text>
+  <text x="300" y="172" class="lbl">MaxStepsGuard</text>
+  <text x="300" y="188" class="lbl">CostCeilingGuard</text>
+  <text x="300" y="204" class="lbl">LoopDetectionGuard</text>
+  <text x="300" y="220" class="lbl">TimeoutGuard</text>
+
+  <!-- Arrow → safe -->
+  <line x1="370" y1="180" x2="430" y2="180" stroke="#238636" stroke-width="2" marker-end="url(#arr2)"/>
+  <defs><marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#238636"/></marker></defs>
+
+  <!-- Safe output (right) -->
+  <rect x="432" y="130" width="140" height="100" rx="10" class="safe"/>
+  <text x="502" y="155" font-family="monospace" font-size="10" fill="#3fb950" text-anchor="middle">✓ Guarded</text>
+  <text x="502" y="172" class="lbl">stopped at step 12</text>
+  <text x="502" y="188" class="lbl">cost: $0.04 / $0.50</text>
+  <text x="502" y="204" class="lbl">loop: detected + halt</text>
+  <text x="502" y="220" class="lbl" style="fill:#3fb950">AgentResult returned</text>
+
+  <!-- Stats pills -->
+  <rect x="40" y="262" width="110" height="22" rx="11" fill="#161b22" stroke="#30363d"/>
+  <text x="95" y="277" font-family="monospace" font-size="9" fill="#8b949e" text-anchor="middle">5 guard types</text>
+  <rect x="162" y="262" width="120" height="22" rx="11" fill="#161b22" stroke="#30363d"/>
+  <text x="222" y="277" font-family="monospace" font-size="9" fill="#8b949e" text-anchor="middle">composable chain</text>
+  <rect x="294" y="262" width="110" height="22" rx="11" fill="#161b22" stroke="#30363d"/>
+  <text x="349" y="277" font-family="monospace" font-size="9" fill="#8b949e" text-anchor="middle">zero LLM calls</text>
+  <rect x="416" y="262" width="120" height="22" rx="11" fill="#161b22" stroke="#30363d"/>
+  <text x="476" y="277" font-family="monospace" font-size="9" fill="#8b949e" text-anchor="middle">cost-aware halting</text>
+</svg>
